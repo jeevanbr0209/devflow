@@ -13,25 +13,33 @@ app.get("/api/health", (req, res) => {
     message: "DevFlow API is running 🚀"
   });
 });
+
+let projects = [
+  {
+    id: 1,
+    name: "DevFlow",
+    description: "Developer Workspace"
+  }
+];
+
 app.get("/api/projects", (req, res) => {
-  res.json([
-    {
-      id: 1,
-      name: "DevFlow",
-      description: "Developer Workspace"
-    }
-  ]);
+  res.json(projects);
 });
 
 app.post("/api/projects", (req, res) => {
   const { name, description } = req.body;
 
+  const newProject = {
+    id: projects.length + 1,
+    name,
+    description
+  };
+
+  projects.push(newProject);
+
   res.json({
     message: "Project created successfully 🚀",
-    project: {
-      name,
-      description
-    }
+    project: newProject
   });
 });
 

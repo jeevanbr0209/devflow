@@ -1,46 +1,96 @@
+
 import { useEffect, useState } from "react";
 
 function App() {
-  const [message, setMessage] = useState("Connecting...");
   const [projects, setProjects] = useState([]);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [message, setMessage] = useState("");
 
   useEffect(() => {
-    fetch("http://localhost:5000/api/health")
+    fetch("http://localhost:5000/api/projects")
       .then((response) => response.json())
       .then((data) => {
-        setMessage(data.message);
+        setProjects(data);
       })
       .catch((error) => {
         console.error(error);
       });
+  }, []);
 
-    fetch("http://localhost:5000/api/projects")
+  function createProject(event) {
+    event.preventDefault();
+
+    fetch("http://localhost:5000/api/projects", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: name,
+        description: description,
+      }),
+    })
       .then((response) => response.json())
       .then((data) => {
-        console.log("PROJECT DATA:", data);
-        setProjects(data);
+        setMessage(data.message);
+
+        setProjects([...projects, data.project]);
+
+        setName("");
+        setDescription("");
       })
       .catch((error) => {
-        console.error("PROJECT ERROR:", error);
+        console.error(error);
       });
-  }, []);
+  }
 
   return (
     <div>
       <h1>DevFlow</h1>
       <p>Developer Workspace</p>
-      <p>{message}</p>
 
       <h2>Projects</h2>
 
-{projects.map((project) => (
-  <div key={project.id}>
-    <h3>{project.name}</h3>
-    <p>{project.description}</p>
-  </div>
-))}
+      <p>Number of projects: {projects.length}</p>
+
+      {projects.map((project) => (
+        <div key={project.id}>
+          <h3>{project.name}</h3>
+          <p>{project.description}</p>
+        </div>
+      ))}
+
+      {message && <p>{message}</p>}
+
+      <h2>Create a Project</h2>
+
+      <form onSubmit={createProject}>
+        <input
+          type="text"
+          placeholder="Project name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+        />
+
+        <br />
+        <br />
+
+        <input
+          type="text"
+          placeholder="Project description"
+          value={description}
+          onChange={(event) => setDescription(event.target.value)}
+        />
+
+        <br />
+        <br />
+
+        <button type="submit">Create Project</button>
+      </form>
     </div>
   );
 }
 
 export default App;
+
