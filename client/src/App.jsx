@@ -7,6 +7,8 @@ function App() {
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
 
+  const [editingId, setEditingId] = useState(null);
+
   // Get projects
   function getProjects() {
     fetch("http://localhost:5000/api/projects")
@@ -51,6 +53,43 @@ function App() {
       });
   }
 
+  // Start editing
+  function startEdit(project) {
+    setEditingId(project.id);
+    setName(project.name);
+    setDescription(project.description);
+    setMessage("");
+  }
+
+  // Update project
+  function updateProject(event) {
+    event.preventDefault();
+
+    fetch(`http://localhost:5000/api/projects/${editingId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: name,
+        description: description,
+      }),
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setMessage(data.message);
+
+        setName("");
+        setDescription("");
+        setEditingId(null);
+
+        getProjects();
+      })
+      .catch((error) => {
+        console.error("Error:", error);
+      });
+  }
+
   // Delete project
   function deleteProject(id) {
     fetch(`http://localhost:5000/api/projects/${id}`, {
@@ -65,6 +104,14 @@ function App() {
       .catch((error) => {
         console.error("Error:", error);
       });
+  }
+
+  // Cancel editing
+  function cancelEdit() {
+    setEditingId(null);
+    setName("");
+    setDescription("");
+    setMessage("");
   }
 
   return (
@@ -82,6 +129,12 @@ function App() {
 
           <p>{project.description}</p>
 
+          <button onClick={() => startEdit(project)}>
+            Edit
+          </button>
+
+          {" "}
+
           <button onClick={() => deleteProject(project.id)}>
             Delete
           </button>
@@ -92,9 +145,9 @@ function App() {
 
       {message && <p>{message}</p>}
 
-      <h2>Create a Project</h2>
+      <h2>{editingId ? "Edit Project" : "Create a Project"}</h2>
 
-      <form onSubmit={createProject}>
+      <form onSubmit={editingId ? updateProject : createProject}>
         <input
           type="text"
           placeholder="Project name"
@@ -115,7 +168,17 @@ function App() {
         <br />
         <br />
 
-        <button type="submit">Create Project</button>
+        <button type="submit">
+          {editingId ? "Update Project" : "Create Project"}
+        </button>
+
+        {" "}
+
+        {editingId && (
+          <button type="button" onClick={cancelEdit}>
+            Cancel
+          </button>
+        )}
       </form>
     </div>
   );

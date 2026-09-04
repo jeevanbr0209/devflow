@@ -48,6 +48,33 @@ app.post("/api/projects", (req, res) => {
   });
 });
 
+app.put("/api/projects/:id", (req, res) => {
+  const id = parseInt(req.params.id);
+
+  const project = projects.find((project) => project.id === id);
+
+  if (!project) {
+    return res.status(404).json({
+      message: "Project not found",
+    });
+  }
+
+  const { name, description } = req.body;
+
+  if (name !== undefined) {
+    project.name = name;
+  }
+
+  if (description !== undefined) {
+    project.description = description;
+  }
+
+  res.json({
+    message: "Project updated successfully",
+    project,
+  });
+});
+
 // DELETE a project
 app.delete("/api/projects/:id", (req, res) => {
   const id = Number(req.params.id);
