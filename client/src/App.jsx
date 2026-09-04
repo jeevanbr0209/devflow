@@ -7,17 +7,23 @@ function App() {
   const [description, setDescription] = useState("");
   const [message, setMessage] = useState("");
 
-  useEffect(() => {
+  // Get projects
+  function getProjects() {
     fetch("http://localhost:5000/api/projects")
       .then((response) => response.json())
       .then((data) => {
         setProjects(data);
       })
       .catch((error) => {
-        console.error(error);
+        console.error("Error:", error);
       });
+  }
+
+  useEffect(() => {
+    getProjects();
   }, []);
 
+  // Create project
   function createProject(event) {
     event.preventDefault();
 
@@ -35,13 +41,29 @@ function App() {
       .then((data) => {
         setMessage(data.message);
 
-        setProjects([...projects, data.project]);
-
         setName("");
         setDescription("");
+
+        getProjects();
       })
       .catch((error) => {
-        console.error(error);
+        console.error("Error:", error);
+      });
+  }
+
+  // Delete project
+  function deleteProject(id) {
+    fetch(`http://localhost:5000/api/projects/${id}`, {
+      method: "DELETE",
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setMessage(data.message);
+
+        getProjects();
+      })
+      .catch((error) => {
+        console.error("Error:", error);
       });
   }
 
@@ -57,7 +79,14 @@ function App() {
       {projects.map((project) => (
         <div key={project.id}>
           <h3>{project.name}</h3>
+
           <p>{project.description}</p>
+
+          <button onClick={() => deleteProject(project.id)}>
+            Delete
+          </button>
+
+          <hr />
         </div>
       ))}
 
