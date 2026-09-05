@@ -1,8 +1,14 @@
-
+import Login from "./pages/Login";
+import Register from "./pages/Register";
 import { useEffect, useState } from "react";
 import "./App.css";
 
 function App() {
+  const user = JSON.parse(localStorage.getItem("user"));
+
+const [isLoggedIn, setIsLoggedIn] = useState(
+  !!localStorage.getItem("token")
+);
   const [projects, setProjects] = useState([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -15,11 +21,44 @@ function App() {
   // Project details
   const [selectedProject, setSelectedProject] = useState(null);
 
-  // Get projects
+  // =========================================
+  // LOGIN CHECK
+  // =========================================
+
+  if (!isLoggedIn) {
+    return <Login onLogin={() => setIsLoggedIn(true)} />;
+  }
+
+  
+
+  // =========================================
+  // GET PROJECTS
+  // =========================================
+
   function getProjects() {
-    fetch("http://localhost:5000/api/projects")
-      .then((response) => response.json())
+    const token = localStorage.getItem("token");
+
+    fetch("http://localhost:5000/api/projects", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then((response) => {
+        // Token expired or invalid
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
+          setIsLoggedIn(false);
+
+          return null;
+        }
+
+        return response.json();
+      })
       .then((data) => {
+        if (!data) return;
+
         setProjects(data);
       })
       .catch((error) => {
@@ -27,11 +66,15 @@ function App() {
       });
   }
 
+  // Load projects when dashboard opens
   useEffect(() => {
     getProjects();
   }, []);
 
-  // Create project
+  // =========================================
+  // CREATE PROJECT
+  // =========================================
+
   function createProject(event) {
     event.preventDefault();
 
@@ -39,6 +82,7 @@ function App() {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify({
         name: name,
@@ -46,8 +90,21 @@ function App() {
         status: status,
       }),
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
+          setIsLoggedIn(false);
+
+          return null;
+        }
+
+        return response.json();
+      })
       .then((data) => {
+        if (!data) return;
+
         setMessage(data.message);
 
         setName("");
@@ -61,7 +118,10 @@ function App() {
       });
   }
 
-  // Start editing
+  // =========================================
+  // START EDITING
+  // =========================================
+
   function startEdit(project) {
     setEditingId(project.id);
     setName(project.name);
@@ -70,7 +130,10 @@ function App() {
     setMessage("");
   }
 
-  // Update project
+  // =========================================
+  // UPDATE PROJECT
+  // =========================================
+
   function updateProject(event) {
     event.preventDefault();
 
@@ -78,6 +141,7 @@ function App() {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
       },
       body: JSON.stringify({
         name: name,
@@ -85,8 +149,21 @@ function App() {
         status: status,
       }),
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
+          setIsLoggedIn(false);
+
+          return null;
+        }
+
+        return response.json();
+      })
       .then((data) => {
+        if (!data) return;
+
         setMessage(data.message);
 
         setName("");
@@ -101,13 +178,40 @@ function App() {
       });
   }
 
-  // Delete project
+  // =========================================
+  // DELETE PROJECT
+  // =========================================
+
   function deleteProject(id) {
+    const confirmed = window.confirm(
+      "Are you sure you want to delete this project?"
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     fetch(`http://localhost:5000/api/projects/${id}`, {
       method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
     })
-      .then((response) => response.json())
+      .then(async (response) => {
+        if (response.status === 401) {
+          localStorage.removeItem("token");
+          localStorage.removeItem("user");
+
+          setIsLoggedIn(false);
+
+          return null;
+        }
+
+        return response.json();
+      })
       .then((data) => {
+        if (!data) return;
+
         setMessage(data.message);
 
         if (selectedProject && selectedProject.id === id) {
@@ -121,7 +225,10 @@ function App() {
       });
   }
 
-  // Cancel editing
+  // =========================================
+  // CANCEL EDITING
+  // =========================================
+
   function cancelEdit() {
     setEditingId(null);
     setName("");
@@ -130,7 +237,10 @@ function App() {
     setMessage("");
   }
 
-  // Search + status filtering
+  // =========================================
+  // SEARCH + STATUS FILTER
+  // =========================================
+
   const filteredProjects = projects.filter((project) => {
     const matchesSearch = project.name
       .toLowerCase()
@@ -143,110 +253,214 @@ function App() {
     return matchesSearch && matchesStatus;
   });
 
+  // =========================================
+  // DASHBOARD
+  // =========================================
+
   return (
     <div className="app">
-      {/* Header */}
+
+      {/* =====================================
+          HEADER
+      ===================================== */}
+
       <header className="header">
-        <div>
+
+        <div className="header-brand">
           <h1>DevFlow</h1>
-          <p>Developer Workspace</p>
+
+          <p>
+            Developer Workspace
+          </p>
         </div>
 
-        <div className="project-stats">
-          <div className="stat">
-            <span>{projects.length}</span>
-            <small>Total</small>
+        <div className="header-right">
+
+          <div className="project-stats">
+
+            <div className="stat">
+              <span>
+                {projects.length}
+              </span>
+
+              <small>
+                Total
+              </small>
+            </div>
+
+            <div className="stat">
+              <span>
+                {
+                  projects.filter(
+                    (project) =>
+                      project.status === "In Progress"
+                  ).length
+                }
+              </span>
+
+              <small>
+                In Progress
+              </small>
+            </div>
+
+            <div className="stat">
+              <span>
+                {
+                  projects.filter(
+                    (project) =>
+                      project.status === "Completed"
+                  ).length
+                }
+              </span>
+
+              <small>
+                Completed
+              </small>
+            </div>
+
           </div>
 
-          <div className="stat">
-            <span>
-              {
-                projects.filter(
-                  (project) => project.status === "In Progress"
-                ).length
-              }
-            </span>
-            <small>In Progress</small>
-          </div>
+          <button
+            className="logout-btn"
+            onClick={() => {
+              localStorage.removeItem("token");
+              localStorage.removeItem("user");
 
-          <div className="stat">
-            <span>
-              {
-                projects.filter(
-                  (project) => project.status === "Completed"
-                ).length
-              }
-            </span>
-            <small>Completed</small>
-          </div>
+              setIsLoggedIn(false);
+            }}
+          >
+            Logout
+          </button>
+
         </div>
+
       </header>
 
+      {/* =====================================
+          MAIN CONTENT
+      ===================================== */}
+
       <main className="container">
+
         {/* Projects Introduction */}
+
         <section className="intro">
+
           <div className="intro-top">
+
             <div>
-              <h2>Your Projects</h2>
+
+              <p className="welcome-text">
+                Welcome back
+                {user?.name ? `, ${user.name}` : ""}
+              </p>
+
+              <h2>
+                Your Projects
+              </h2>
+
               <p>
                 Manage and organize your development projects.
               </p>
+
             </div>
 
             <input
               className="search-input"
               type="text"
-              placeholder="🔍 Search projects..."
+              placeholder="Search projects..."
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) =>
+                setSearch(event.target.value)
+              }
             />
+
           </div>
 
           {/* Status Filters */}
+
           <div className="filter-buttons">
+
             <button
-              className={statusFilter === "All" ? "active" : ""}
-              onClick={() => setStatusFilter("All")}
+              className={
+                statusFilter === "All"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setStatusFilter("All")
+              }
             >
               All
             </button>
 
             <button
-              className={statusFilter === "Planned" ? "active" : ""}
-              onClick={() => setStatusFilter("Planned")}
+              className={
+                statusFilter === "Planned"
+                  ? "active"
+                  : ""
+              }
+              onClick={() =>
+                setStatusFilter("Planned")
+              }
             >
               Planned
             </button>
 
             <button
               className={
-                statusFilter === "In Progress" ? "active" : ""
+                statusFilter === "In Progress"
+                  ? "active"
+                  : ""
               }
-              onClick={() => setStatusFilter("In Progress")}
+              onClick={() =>
+                setStatusFilter("In Progress")
+              }
             >
               In Progress
             </button>
 
             <button
               className={
-                statusFilter === "Completed" ? "active" : ""
+                statusFilter === "Completed"
+                  ? "active"
+                  : ""
               }
-              onClick={() => setStatusFilter("Completed")}
+              onClick={() =>
+                setStatusFilter("Completed")
+              }
             >
               Completed
             </button>
+
           </div>
+
         </section>
 
-        {/* Message */}
-        {message && <div className="message">{message}</div>}
+        {/* =====================================
+            MESSAGE
+        ===================================== */}
 
-        {/* Projects */}
+        {message && (
+          <div className="message">
+            {message}
+          </div>
+        )}
+
+        {/* =====================================
+            PROJECTS
+        ===================================== */}
+
         <section className="projects-grid">
+
           {filteredProjects.length === 0 ? (
+
             <div className="empty-state">
+
               <h3>
-                {search ? "No projects found" : "No projects yet"}
+                {search
+                  ? "No projects found"
+                  : "No projects yet"}
               </h3>
 
               <p>
@@ -254,19 +468,32 @@ function App() {
                   ? "Try searching for a different project."
                   : "Create your first project below."}
               </p>
+
             </div>
+
           ) : (
+
             filteredProjects.map((project) => (
+
               <div
                 className="project-card"
                 key={project.id}
-                onClick={() => setSelectedProject(project)}
+                onClick={() =>
+                  setSelectedProject(project)
+                }
               >
-                <div className="project-icon">💻</div>
 
-                <h3>{project.name}</h3>
+                <div className="project-icon">
+                  {"</>"}
+                </div>
 
-                <p>{project.description}</p>
+                <h3>
+                  {project.name}
+                </h3>
+
+                <p>
+                  {project.description}
+                </p>
 
                 <div
                   className={`status ${project.status
@@ -276,11 +503,15 @@ function App() {
                   {project.status || "Planned"}
                 </div>
 
+                {/* Card Actions */}
+
                 <div className="card-actions">
+
                   <button
                     className="edit-btn"
                     onClick={(event) => {
                       event.stopPropagation();
+
                       startEdit(project);
                     }}
                   >
@@ -291,20 +522,34 @@ function App() {
                     className="delete-btn"
                     onClick={(event) => {
                       event.stopPropagation();
+
                       deleteProject(project.id);
                     }}
                   >
                     Delete
                   </button>
+
                 </div>
+
               </div>
+
             ))
+
           )}
+
         </section>
 
-        {/* Create / Edit Form */}
+        {/* =====================================
+            CREATE / EDIT FORM
+        ===================================== */}
+
         <section className="form-section">
-          <h2>{editingId ? "Edit Project" : "Create a Project"}</h2>
+
+          <h2>
+            {editingId
+              ? "Edit Project"
+              : "Create a Project"}
+          </h2>
 
           <p>
             {editingId
@@ -312,46 +557,86 @@ function App() {
               : "Add a new project to your workspace."}
           </p>
 
-          <form onSubmit={editingId ? updateProject : createProject}>
+          <form
+            onSubmit={
+              editingId
+                ? updateProject
+                : createProject
+            }
+          >
+
             <div className="input-group">
-              <label>Project Name</label>
+
+              <label>
+                Project Name
+              </label>
 
               <input
                 type="text"
                 placeholder="Enter project name"
                 value={name}
-                onChange={(event) => setName(event.target.value)}
+                onChange={(event) =>
+                  setName(event.target.value)
+                }
                 required
               />
+
             </div>
 
             <div className="input-group">
-              <label>Description</label>
+
+              <label>
+                Description
+              </label>
 
               <textarea
                 placeholder="What is this project about?"
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
+                onChange={(event) =>
+                  setDescription(event.target.value)
+                }
                 required
               />
+
             </div>
 
             <div className="input-group">
-              <label>Project Status</label>
+
+              <label>
+                Project Status
+              </label>
 
               <select
                 value={status}
-                onChange={(event) => setStatus(event.target.value)}
+                onChange={(event) =>
+                  setStatus(event.target.value)
+                }
               >
-                <option value="Planned">Planned</option>
-                <option value="In Progress">In Progress</option>
-                <option value="Completed">Completed</option>
+                <option value="Planned">
+                  Planned
+                </option>
+
+                <option value="In Progress">
+                  In Progress
+                </option>
+
+                <option value="Completed">
+                  Completed
+                </option>
+
               </select>
+
             </div>
 
             <div className="form-actions">
-              <button className="primary-btn" type="submit">
-                {editingId ? "Update Project" : "Create Project"}
+
+              <button
+                className="primary-btn"
+                type="submit"
+              >
+                {editingId
+                  ? "Update Project"
+                  : "Create Project"}
               </button>
 
               {editingId && (
@@ -363,50 +648,83 @@ function App() {
                   Cancel
                 </button>
               )}
+
             </div>
+
           </form>
+
         </section>
+
       </main>
 
-      {/* Project Details Modal */}
+      {/* =====================================
+          PROJECT DETAILS MODAL
+      ===================================== */}
+
       {selectedProject && (
+
         <div
           className="modal-overlay"
-          onClick={() => setSelectedProject(null)}
+          onClick={() =>
+            setSelectedProject(null)
+          }
         >
+
           <div
             className="project-modal"
-            onClick={(event) => event.stopPropagation()}
+            onClick={(event) =>
+              event.stopPropagation()
+            }
           >
+
             <button
               className="modal-close"
-              onClick={() => setSelectedProject(null)}
+              onClick={() =>
+                setSelectedProject(null)
+              }
             >
               ×
             </button>
 
-            <div className="project-icon modal-icon">💻</div>
+            <div className="project-icon modal-icon">
+              {"</>"}
+            </div>
 
-            <h2>{selectedProject.name}</h2>
+            <h2>
+              {selectedProject.name}
+            </h2>
 
             <p className="modal-description">
               {selectedProject.description}
             </p>
 
             <div className="modal-info">
+
               <div>
-                <span>Status</span>
+
+                <span>
+                  Status
+                </span>
 
                 <strong>
-                  {selectedProject.status || "Planned"}
+                  {selectedProject.status ||
+                    "Planned"}
                 </strong>
+
               </div>
 
               <div>
-                <span>Project ID</span>
 
-                <strong>#{selectedProject.id}</strong>
+                <span>
+                  Project ID
+                </span>
+
+                <strong>
+                  #{selectedProject.id}
+                </strong>
+
               </div>
+
             </div>
 
             <button
@@ -418,12 +736,15 @@ function App() {
             >
               Edit Project
             </button>
+
           </div>
+
         </div>
+
       )}
+
     </div>
   );
 }
 
 export default App;
-
