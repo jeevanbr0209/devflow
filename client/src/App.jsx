@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 function App() {
+  const [showRegister, setShowRegister] = useState(false);
   const user = JSON.parse(localStorage.getItem("user"));
 
 const [isLoggedIn, setIsLoggedIn] = useState(
@@ -25,9 +26,21 @@ const [isLoggedIn, setIsLoggedIn] = useState(
   // LOGIN CHECK
   // =========================================
 
-  if (!isLoggedIn) {
-    return <Login onLogin={() => setIsLoggedIn(true)} />;
+ if (!isLoggedIn) {
+  if (showRegister) {
+    return (
+      <Register
+        onBackToLogin={() => setShowRegister(false)}
+      />
+    );
   }
+
+  return (
+    <Login
+      onRegister={() => setShowRegister(true)}
+    />
+  );
+}
 
   
 

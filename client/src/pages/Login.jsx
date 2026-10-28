@@ -1,12 +1,16 @@
+
 import { useState } from "react";
 
-function Login({ onLogin }) {
+function Login({ onRegister }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
 
   async function handleLogin(event) {
     event.preventDefault();
+    setMessage("");
+    setLoading(true);
 
     try {
       const response = await fetch(
@@ -16,10 +20,7 @@ function Login({ onLogin }) {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({
-            email,
-            password,
-          }),
+          body: JSON.stringify({ email, password }),
         }
       );
 
@@ -37,14 +38,14 @@ function Login({ onLogin }) {
     } catch (error) {
       console.error(error);
       setMessage("Cannot connect to server");
+    } finally {
+      setLoading(false);
     }
   }
 
   return (
     <div className="login-page">
       <div className="login-card">
-
-        {/* Logo */}
         <div className="login-logo">
           <h1>DevFlow</h1>
         </div>
@@ -53,21 +54,14 @@ function Login({ onLogin }) {
           Developer project workspace
         </p>
 
-        {/* Heading */}
         <div className="login-heading">
           <h2>Welcome back</h2>
-
-          <p>
-            Sign in to access your workspace
-          </p>
+          <p>Sign in to access your workspace</p>
         </div>
 
-        {/* Login Form */}
         <form onSubmit={handleLogin} className="login-form">
-
           <div className="input-group">
             <label>Email</label>
-
             <input
               type="email"
               placeholder="you@example.com"
@@ -79,7 +73,6 @@ function Login({ onLogin }) {
 
           <div className="input-group">
             <label>Password</label>
-
             <input
               type="password"
               placeholder="Enter your password"
@@ -92,26 +85,33 @@ function Login({ onLogin }) {
           <button
             type="submit"
             className="login-button"
+            disabled={loading}
           >
-            Sign In →
+            {loading ? "Signing in..." : "Sign In →"}
           </button>
         </form>
 
-        {/* Error / Success Message */}
         {message && (
-          <p className="login-message">
-            {message}
-          </p>
+          <p className="login-message">{message}</p>
         )}
 
-        {/* Register */}
         <p className="login-footer">
           Don't have an account?{" "}
-          <span className="register-link">
+          <button
+            type="button"
+            className="register-link"
+            onClick={onRegister}
+            style={{
+              border: "none",
+              background: "none",
+              padding: 0,
+              font: "inherit",
+              cursor: "pointer",
+            }}
+          >
             Create one
-          </span>
+          </button>
         </p>
-
       </div>
     </div>
   );
